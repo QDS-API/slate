@@ -1,245 +1,99 @@
 ---
-title: API Reference
+title: BEX REST API Documentation
 
-language_tabs: # must be one of https://github.com/rouge-ruby/rouge/wiki/List-of-supported-languages-and-lexers
-  - shell
-  - ruby
-  - python
+language_tabs: # must be one of https://git.io/vQNgJ
+  - json
   - javascript
+  - csharp
 
 toc_footers:
-  - <a href='#'>Sign Up for a Developer Key</a>
-  - <a href='https://github.com/slatedocs/slate'>Documentation Powered by Slate</a>
+  - <a href='https://bex.co.za/signup'>Open a BEX account</a>
+  - <a href='https://bex.co.za/quick-track'>Track a shipment</a>
+  - <a href='https://bex.co.za/about'>About us</a>
+
 
 includes:
-  - errors
+  - login
+  - tracking
+  - quoting
+  - waybill
+  - webhooks
 
 search: true
-
-code_clipboard: true
-
-meta:
-  - name: description
-    content: Documentation for the Kittn API
 ---
 
-# Introduction
+# Welcome to our DOCS site
 
-Welcome to the Kittn API! You can use our API to access Kittn API endpoints, which can get information on various cats, kittens, and breeds in our database.
+Here at BEX we frequently develop and publish new API’s to assist our customers who wish to gain deeper control and visibility into their courier processes.
 
-We have language bindings in Shell, Ruby, Python, and JavaScript! You can view code examples in the dark area to the right, and you can switch the programming language of the examples with the tabs in the top right.
+These API’s allow for direct integration into our courier platform, allowing data to be read and created using requests in JSON format.
+Couple this with our token based Authentication methods and standard HTTP verbs (which are understood by most HTTP clients) you have the capability to orchestrate and manage a number of processes within the courier environment.
 
-This example API documentation page was created with [Slate](https://github.com/slatedocs/slate). Feel free to edit it and use it as a base for your own API's documentation.
+We hope that you will build something great and benefit from integrating with our courier API’s.
 
-# Authentication
+We want your courier journey to be pain-free - If you run into any difficulties, or perhaps you have some suggestions for us, please do not hesitate to <a href="mailto:it@bex.co.za?subject=Please%20help%20me%20to%20integrate%20with%20you">reach out</a> and we will gladly work with you.
 
-> To authorize, use this code:
+# Requirements
 
-```ruby
-require 'kittn'
+To make use of our API integration we require the following:
 
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-```
+1. A valid <a href="https://bex.co.za/signup">shipping account</a> with BEX.
+1. The creation of an integration user identity under which you will transact over the API’s
+1. For security sensitive data requests, a valid <a href="#login">token</a>.
 
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-```
-
-```shell
-# With shell, you can just pass the correct header with each request
-curl "api_endpoint_here" \
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-```
-
-> Make sure to replace `meowmeowmeow` with your API key.
-
-Kittn uses API keys to allow access to the API. You can register a new Kittn API key at our [developer portal](http://example.com/developers).
-
-Kittn expects for the API key to be included in all API requests to the server in a header that looks like the following:
-
-`Authorization: meowmeowmeow`
+**Note:** If you have multiple shipping accounts you are not required to transact under multiple integration identities (“tokens”). Our platform supports the assignment of multiple shipping accounts to a _single_ token, making integration across multiple business units easier.
 
 <aside class="notice">
-You must replace <code>meowmeowmeow</code> with your personal API key.
+You may access the API over HTTP or HTTPS, but HTTPS is recommended if you wish to keep things secure.
 </aside>
 
-# Kittens
+# Request/Response Format
+The default response format is **JSON**. Requests with a message-body use plain JSON to set resource attributes.
 
-## Get All Kittens
+Successful requests will return a `200 OK` HTTP status.
 
-```ruby
-require 'kittn'
+# Errors
 
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get
-```
+You can find the errors specific to each API endpoint under its dedicated API topic.
 
-```python
-import kittn
+We communicate API errors in the _ex:_ ( _ex_ ception ) attribute found in the base object of our API responses.
 
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get()
-```
+**A word on success flags:**
+We return `200 OK` http status responses for **ALL** requests that make it to our server, **even if we run into an error when processing your request.**
 
-```shell
-curl "http://example.com/api/kittens" \
-  -H "Authorization: meowmeowmeow"
-```
+For API submissions that result in a processing error (read _validation and business logic/”elegant” type errors_) we include an attribute in the API response titled _ex:_ where we communicate the reason for the processing failure.
 
-```javascript
-const kittn = require('kittn');
+A response could look as follows:
 
-let api = kittn.authorize('meowmeowmeow');
-let kittens = api.kittens.get();
-```
+* HTTP status code: `200 OK`
+* API response: `"ex": "Account number is not registered for transactions with this token."`
 
-> The above command returns JSON structured like this:
+![200 OK with error ex:](200OK-response-with-ex-error.jpg)
+_Above: Note the **200 OK** status whilst receiving an error **"ex":** response_
 
-```json
-[
-  {
-    "id": 1,
-    "name": "Fluffums",
-    "breed": "calico",
-    "fluffiness": 6,
-    "cuteness": 7
-  },
-  {
-    "id": 2,
-    "name": "Max",
-    "breed": "unknown",
-    "fluffiness": 5,
-    "cuteness": 10
-  }
-]
-```
+In instances where there is a technical breakdown in the processing of the API request, such as querying the wrong endpoint address, you will receive the appropriate http status code such as a `404 error`.
 
-This endpoint retrieves all kittens.
+# Parameters
 
-### HTTP Request
+Almost all endpoints accept optional parameters which can be passed as an HTTP query string parameter, e.g. `GET /getcustomquicktracking_V3?ref=invoices`
 
-`GET http://example.com/api/kittens`
+Parameters containing special characters that are passed in a URL request must have their data url encoded.
 
-### Query Parameters
+All parameters are documented along each endpoint.
 
-Parameter | Default | Description
---------- | ------- | -----------
-include_cats | false | If set to true, the result will also include cats.
-available | true | If set to false, the result will include kittens that have already been adopted.
+# Libraries
+We do not currently offer any libraries for our API implementation. We are in the process of creating .NET wrappers that you can use in the future. We will publish more information on this topic once it is ready for use.
 
-<aside class="success">
-Remember — a happy kitten is an authenticated kitten!
-</aside>
+# Tools
+Some useful tools you can use to access the API's include:
 
-## Get a Specific Kitten
+* <a href="https://insomnia.rest">Insomnia</a> - Cross-platform GraphQL and REST client, available for Mac, Windows, and Linux.
+* <a href="https://getpostman.com">Postman</a> - Cross-platform REST client, available for Mac, Windows, and Linux.
+* <a href="https://requestbin.com">RequestBin</a> - Allows you test webhooks.
+* <a href="https://hookbin.com">Hookbin</a> - Another tool to test webhooks.
 
-```ruby
-require 'kittn'
 
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get(2)
-```
+# Authentication
+Authentication against the BEX API ecosystem is a two-part process and is required to prevent access to confidential client data. The process involves the generation of your API security token which is described in the next section. This token is then included in the HTTP headers of your API calls and serves to identify and authenticate you on our platform.
 
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get(2)
-```
-
-```shell
-curl "http://example.com/api/kittens/2" \
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let max = api.kittens.get(2);
-```
-
-> The above command returns JSON structured like this:
-
-```json
-{
-  "id": 2,
-  "name": "Max",
-  "breed": "unknown",
-  "fluffiness": 5,
-  "cuteness": 10
-}
-```
-
-This endpoint retrieves a specific kitten.
-
-<aside class="warning">Inside HTML code blocks like this one, you can't use Markdown, so use <code>&lt;code&gt;</code> blocks to denote code.</aside>
-
-### HTTP Request
-
-`GET http://example.com/kittens/<ID>`
-
-### URL Parameters
-
-Parameter | Description
---------- | -----------
-ID | The ID of the kitten to retrieve
-
-## Delete a Specific Kitten
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.delete(2)
-```
-
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.delete(2)
-```
-
-```shell
-curl "http://example.com/api/kittens/2" \
-  -X DELETE \
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let max = api.kittens.delete(2);
-```
-
-> The above command returns JSON structured like this:
-
-```json
-{
-  "id": 2,
-  "deleted" : ":("
-}
-```
-
-This endpoint deletes a specific kitten.
-
-### HTTP Request
-
-`DELETE http://example.com/kittens/<ID>`
-
-### URL Parameters
-
-Parameter | Description
---------- | -----------
-ID | The ID of the kitten to delete
-
+API’s that serve non-sensitive client data such as our quick waybill <a href="tracking">tracking</a> do not require your token to be present in the API call and can be called anonymously.
